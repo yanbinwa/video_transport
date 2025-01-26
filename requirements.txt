@@ -1,0 +1,6 @@
+torch>=1.13
+torchaudio
+pycryptodomex
+requests~=2.32.3
+funasr~=1.2.3
+wget~=3.2
