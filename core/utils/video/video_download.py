@@ -7,6 +7,9 @@ from core.utils.common.logger import log
 
 video_download_url = "https://tubedown.cn/api/youtube"
 
+audio_format = ["medium, DRC", "medium", "low, DRC", "low"]
+video_format = ["1080p", "720p", "480p", "360p", "240p", "144p"]
+
 
 def download_video_by_url(url, file_path):
     url = get_video_download_url(url)
@@ -30,18 +33,21 @@ def get_video_audio_list_download_url(url):
 
 
 def get_video_download_url(url):
-    data = get_video_audio_list_download_url(url);
     # 如何判断
     data_list = get_video_audio_list_download_url(url);
     # 如何判断: asr != None and fileSize != None，取fileSize最大的一个作为结果
-    data_list = [data for data in data_list if data.get("asr", None) is None and data.get("filesize", None) is not None]
+    data_list = [data for data in data_list if data.get("format_note", None) is None
+                 and data.get('format_note') in video_format
+                 and data.get("filesize", None) is not None]
     return max(data_list, key=lambda x: x["filesize"])["url"]
 
 
 def get_audio_download_url(url):
     data_list = get_video_audio_list_download_url(url);
     # 如何判断: asr != None and fileSize != None，取fileSize最大的一个作为结果
-    data_list = [data for data in data_list if data.get("asr", None) is not None and data.get("filesize", None) is not None]
+    data_list = [data for data in data_list if data.get("asr", None) is not None
+                 and data.get('format_note') in audio_format
+                 and data.get("filesize", None) is not None]
     return max(data_list, key=lambda x: x["filesize"])["url"]
 
 

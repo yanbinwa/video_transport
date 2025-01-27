@@ -2,7 +2,7 @@ import unittest
 
 from core.utils.video import video_download
 
-url = "https://www.youtube.com/watch?v=QNl3wbjXLT8"
+url = "https://www.youtube.com/shorts/hG4tGl0s7XU"
 out_file = "audio.mp3"
 
 
