@@ -9,5 +9,5 @@ out_file = "audio.mp3"
 class VideoDownloadTest(unittest.TestCase):
 
     def test_download_audio_by_url(self):
-        video_download.download_audio_by_url(url, "test.mp3")
+        video_download.download_audio_by_url(url, "../../file/test.mp3")
 
