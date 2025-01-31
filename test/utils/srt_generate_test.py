@@ -49,3 +49,12 @@ class SrtGenerateTest(unittest.TestCase):
 
     def test_generate_srt_file_by_audio(self):
         AssertionError(srt_generate.generate_srt_file_by_audio("../../file/test.mp3", "../file/test.srt"))
+
+    def test_parser_time(self):
+        start_time = srt_generate.parse_time("13:18:35,000")
+        print(start_time)
+
+    def test_get_subtitle_from_srt(self):
+        subtitle = srt_generate.get_subtitle_from_srt("../file/test2.srt", 0, 100)
+        print(subtitle)
+

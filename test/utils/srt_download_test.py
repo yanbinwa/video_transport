@@ -2,7 +2,7 @@ import unittest
 
 from core.utils.srt import srt_download
 
-url = "https://www.bilibili.com/video/BV19D6DYGEba/?spm_id_from=333.1007.tianma.2-2-4.click"
+url = "https://www.bilibili.com/video/BV1NBfSYMEG8"
 
 
 class SrtDownloadTest(unittest.TestCase):

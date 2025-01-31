@@ -3,10 +3,10 @@
 ################################################################################
 
 from typing import List
-from tqdm import tqdm
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 
 def detect_scene_changes(video_path: str, threshold: float = 30.0) -> List[float]:
@@ -149,9 +149,9 @@ def split_video(video_path: str, output_dir: str, scene_changes: List[float], mi
     return output_files
 
 
-def detect_scene_and_spilt(video_path: str, output_dir: str):
+def detect_scene_and_spilt(video_path: str, output_dir: str, threshold: float = 30.0, min_duration: float = 30.0):
     # 检测转场
-    scene_changes = detect_scene_changes(video_path, threshold=30.0)
+    scene_changes = detect_scene_changes(video_path, threshold)
 
     # 切分视频
-    split_video(video_path, output_dir, scene_changes)
+    split_video(video_path, output_dir, scene_changes, min_duration)

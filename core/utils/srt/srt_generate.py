@@ -1,8 +1,9 @@
 import re
+from datetime import datetime
+
 from funasr import AutoModel
 
-
-template = '{}\n{} --> {}\n{}\n'
+template = '{}\n{} --> {}\n{}\n\n'
 model_dir = "paraformer-zh"
 
 
@@ -32,12 +33,35 @@ def generate_srt_file(sentence_info, file_path):
     return True
 
 
+# 10:03:40,000 --> 11:02:35,000
+def get_subtitle_from_srt(srt_file_path, start_second, end_second):
+    with open(srt_file_path, 'r') as f:
+        lines = f.readlines()
+        subtitles = []
+        for i in range(0, len(lines), 4):
+            if i + 2 >= len(lines):
+                print("invalid srt")
+                break
+            time_str = lines[i + 1].split('-->')[0]
+            time_second = parse_time(time_str)
+            if time_second < start_second:
+                continue
+            elif time_second < end_second:
+                subtitles.append(lines[i + 2])
+            else:
+                break
+        if len(subtitles) == 0:
+            return ''
+        return ' '.join(subtitles)
+
+
 # 将timestamp转换中srt中的时间格式
 def timestamp_to_srt(timestamp):
-    hours = timestamp // 3600
-    minutes = (timestamp % 3600) // 60
-    seconds = timestamp % 60
-    milliseconds = (timestamp % 1) * 1000
+    second = timestamp // 1000
+    hours = second // 3600
+    minutes = (second % 3600) // 60
+    seconds = second % 60
+    milliseconds = timestamp % 1000
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
 
@@ -49,4 +73,19 @@ def trim_sentence(sentence):
     return sentence
 
 
+def parse_time(time_str: str) -> int:
+    """
+    将 SRT 时间格式转换为秒数
+
+    Args:
+        time_str: SRT格式的时间字符串 (00:00:00,000)
+
+    Returns:
+        float: 转换后的秒数
+    """
+    # 将逗号替换为点，以便解析毫秒
+    time_str = time_str.replace(',', '.')
+    time_str = time_str.replace(' ', '')
+    time_obj = datetime.strptime(time_str, '%H:%M:%S.%f')
+    return time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second
 
