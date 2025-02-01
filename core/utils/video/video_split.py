@@ -129,14 +129,22 @@ def split_video(video_path: str, output_dir: str, scene_changes: List[float], mi
         
         # 设置输出文件
         output_path = os.path.join(output_dir, f"scene_{i:03d}.mp4")
+        # 设置首帧图片保存路径
+        thumbnail_path = os.path.join(output_dir, f"scene_{i:03d}_thumb.jpg")
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         
         # 定位到起始帧
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
         
-        # 写入帧
-        for _ in range(start_frame, end_frame):
+        # 读取并保存首帧
+        ret, first_frame = cap.read()
+        if ret:
+            cv2.imwrite(thumbnail_path, first_frame)
+            out.write(first_frame)
+        
+        # 写入剩余帧
+        for _ in range(start_frame + 1, end_frame):
             ret, frame = cap.read()
             if not ret:
                 break
