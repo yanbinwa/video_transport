@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import requests
 import wget as wget
@@ -58,14 +59,33 @@ def download_by_url(url, file_path):
     os.environ['https_proxy'] = 'http://127.0.0.1:33210'
     os.environ['all_proxy'] = 'socks5://127.0.0.1:33211'
     log.info("download url: " + url)
+    
+    wget_cmd = [
+        'wget',
+        url,
+        '-O', file_path,
+        '--progress=bar:force',  # 强制显示进度条
+        '--show-progress',       # 显示详细进度信息
+        '-q'                     # 不显示 wget 的其他输出信息
+    ]
+    
     try:
-        if file_path:
-            wget.download(url, file_path)
-        else:
-            wget.download(url)
-        print(f"\n文件下载完成")
-
+        process = subprocess.Popen(
+            wget_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
+        
+        # 在同一行更新进度
+        for line in process.stderr:
+            print(f"\r{line.strip()}", end='', flush=True)
+        print()  # 下载完成后换行
+            
+        process.wait()
+        return True if process.returncode == 0 else False
     except Exception as e:
-        print(f"下载失败: {str(e)}")
+        print(f"\r下载出错: {str(e)}")
+        return False
 
 
