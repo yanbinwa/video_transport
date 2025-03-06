@@ -8,3 +8,5 @@ opencv-python
 numpy
 tqdm
 pydub
+youtube_transcript_api
+

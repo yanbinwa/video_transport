@@ -174,3 +174,5 @@ cython_debug/
 *.mp4
 *.srt
 .idea/
+*.tmp
+*.jpg

@@ -1,8 +1,9 @@
-from pydub import AudioSegment
+import os
 import subprocess
 from typing import Optional
-import os
+
 from tqdm import tqdm
+
 
 def extract_audio(
     video_path: str,
