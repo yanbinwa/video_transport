@@ -9,6 +9,10 @@ from Cryptodome.PublicKey import RSA
 from Cryptodome.Util.Padding import pad
 
 
+def get_bilibili_srt(url):
+    return None
+
+
 def get_bilibili_subtitle(url):
     api_url = 'https://www.kedou.life/api/video/subtitleExtract'
     key = 'kedou@8989!63239'

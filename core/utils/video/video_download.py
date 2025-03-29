@@ -6,7 +6,7 @@ import wget as wget
 
 from core.utils.common.logger import log
 
-video_download_url = "https://tubedown.cn/api/youtube"
+video_download_url = "https://tubedown.cn/api/ytdlp"
 
 audio_format = ["medium, DRC", "medium", "low, DRC", "low"]
 video_format = ["1080p", "720p", "480p", "360p", "240p", "144p", "1080p60", "720p60", "480p60", "360p60",

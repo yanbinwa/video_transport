@@ -64,7 +64,7 @@ def convert_subtitles(subtitles) -> str:
     return "\n".join([sub['text'] for sub in subtitles])
 
 
-def process_video(url: str, languages: List[str] = ['en', 'zh-Hans']) -> str:
+def process_video_srt(url: str, languages: List[str] = ['en', 'zh-Hans']) -> str:
     """处理单个视频"""
     try:
         # 提取视频ID
@@ -77,15 +77,19 @@ def process_video(url: str, languages: List[str] = ['en', 'zh-Hans']) -> str:
         if not subtitles:
             raise ValueError("未找到字幕")
 
-        # 优先选择中文字幕，如果找不到，则选择英文字幕
-        if 'zh-Hans' in subtitles:
-            return convert_subtitles(subtitles['zh-Hans'])
-        elif 'en' in subtitles:
-            return convert_subtitles(subtitles['en'])
-        else:
-            raise ValueError("未找到可用的字幕")
+        return subtitles
 
     except Exception as e:
         print(f"处理视频失败: {str(e)}")
         return {}
 
+
+def process_video(url: str, languages: List[str] = ['en', 'zh-Hans']) -> str:
+    subtitles = process_video_srt(url, languages)
+    # 优先选择中文字幕，如果找不到，则选择英文字幕
+    if 'zh-Hans' in subtitles:
+        return convert_subtitles(subtitles['zh-Hans'])
+    elif 'en' in subtitles:
+        return convert_subtitles(subtitles['en'])
+    else:
+        raise ValueError("未找到可用的字幕")

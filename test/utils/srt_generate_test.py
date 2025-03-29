@@ -41,14 +41,14 @@ ret = {"key": "test",
 class SrtGenerateTest(unittest.TestCase):
 
     def test_generate_srt_file(self):
-        AssertionError(srt_generate.generate_srt_file(ret["sentence_info"], "../../file/test.srt"))
+        AssertionError(srt_generate.generate_srt_file(ret["sentence_info"], "../../file/v1.srt"))
 
     def test_extract_srt_from_audio(self):
         # 返回结果为非空数组
         AssertionError(len(srt_generate.extract_srt_from_audio("../../file/test.mp3")) > 0)
 
     def test_generate_srt_file_by_audio(self):
-        AssertionError(srt_generate.generate_srt_file_by_audio("../../file/test.mp3", "../file/test.srt"))
+        AssertionError(srt_generate.generate_srt_file_by_audio("../../file/test.mp3", "../../file/v1.srt"))
 
     def test_parser_time(self):
         start_time = srt_generate.parse_time("13:18:35,000")

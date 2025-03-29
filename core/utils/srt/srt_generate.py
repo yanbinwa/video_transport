@@ -33,6 +33,21 @@ def generate_srt_file(sentence_info, file_path):
     return True
 
 
+def generate_srt_file_by_subtitle(subtitles, file_path):
+    if len(subtitles) <= 0:
+        return False
+
+    result = ''
+    for i, subtitle in enumerate(subtitles):
+        result = result + template.format(i + 1, timestamp_to_srt(subtitle["start"] * 1000),
+                                          timestamp_to_srt((subtitle["start"] + subtitle["duration"]) * 1000), trim_sentence(subtitle["text"]))
+
+    # 将result写入到srt文件中
+    with open(file_path, 'w') as f:
+        f.write(result)
+    return True
+
+
 # 10:03:40,000 --> 11:02:35,000
 def get_subtitle_from_srt(srt_file_path, start_second, end_second):
     with open(srt_file_path, 'r') as f:
@@ -57,11 +72,11 @@ def get_subtitle_from_srt(srt_file_path, start_second, end_second):
 
 # 将timestamp转换中srt中的时间格式
 def timestamp_to_srt(timestamp):
-    second = timestamp // 1000
-    hours = second // 3600
-    minutes = (second % 3600) // 60
-    seconds = second % 60
-    milliseconds = timestamp % 1000
+    second = round(timestamp // 1000)
+    hours = round(second // 3600)
+    minutes = round((second % 3600) // 60)
+    seconds = round(second % 60)
+    milliseconds = round(timestamp % 1000)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
 
