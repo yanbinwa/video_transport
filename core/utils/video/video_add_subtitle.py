@@ -53,7 +53,8 @@ def add_subtitle_to_video(video_path: str, srt_path: str, output_path: str,
                                   stroke_width=stroke_width,
                                   size=(video.w * 0.8, None),  # 宽度设为视频宽度的80%
                                   method='caption')
-                         .set_position(('center', y_position))  # 设置位置
+                         .set_position(lambda t: ('center', 900+t))  # 设置位置
+                         # .set_position('center', 'bottom')  # 设置位置
                          .set_duration(duration)
                          .set_start(start_time))
 

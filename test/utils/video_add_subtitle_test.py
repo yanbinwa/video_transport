@@ -6,6 +6,7 @@ from core.utils.video.video_add_subtitle import add_subtitle_to_video
 
 project_root = Path(__file__).parent.parent.parent
 
+
 class VideoAddSubtitleTest(unittest.TestCase):
 
     def test_video_add_subtitle(self):
@@ -31,7 +32,7 @@ class VideoAddSubtitleTest(unittest.TestCase):
                 color='white',
                 stroke_color='white',
                 stroke_width=2,  # 稍微粗一点的描边
-                y_position=0.75  # 字幕位置设置为从底部向上25%的位置
+                y_position=0.25  # 字幕位置设置为从底部向上25%的位置
             )
             print(f"✅ 字幕添加成功！输出文件：{result_path}")
 
