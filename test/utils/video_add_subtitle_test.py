@@ -2,7 +2,7 @@ import os
 import unittest
 from pathlib import Path
 
-from core.utils.video.video_add_subtitle import add_subtitle_to_video
+from core.utils.video.video_add_subtitle import add_subtitle
 
 project_root = Path(__file__).parent.parent.parent
 
@@ -24,15 +24,14 @@ class VideoAddSubtitleTest(unittest.TestCase):
 
         try:
             # 执行添加字幕
-            result_path = add_subtitle_to_video(
+            result_path = add_subtitle(
                 video_path=video_path,
                 srt_path=srt_path,
                 output_path=output_path,
                 fontsize=40,  # 稍微大一点的字体
                 color='white',
                 stroke_color='white',
-                stroke_width=2,  # 稍微粗一点的描边
-                y_position=0.25  # 字幕位置设置为从底部向上25%的位置
+                stroke_width=2  # 稍微粗一点的描边
             )
             print(f"✅ 字幕添加成功！输出文件：{result_path}")
 

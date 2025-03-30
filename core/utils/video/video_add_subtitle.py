@@ -1,84 +1,136 @@
+"""
+为视频添加字幕
+"""
 import os
+from typing import Optional
 
 import pysrt
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+from tqdm import tqdm
+
+from ..common.logger import log
 
 
-def add_subtitle_to_video(video_path: str, srt_path: str, output_path: str, 
-                         fontsize: int = 24, 
-                         font: str = 'Arial',
-                         color: str = 'white',
-                         stroke_color: str = 'black',
-                         stroke_width: int = 1,
-                         y_position: float = 0.85) -> str:
+def get_system_font():
     """
-    将 SRT 字幕文件添加到视频中
+    获取系统中文字体路径
+    """
+    # 常见的中文字体路径
+    font_paths = [
+        # macOS
+        '/System/Library/Fonts/PingFang.ttc',  # PingFang
+        '/System/Library/Fonts/STHeiti Light.ttc',  # Heiti
+        '/System/Library/Fonts/STHeiti Medium.ttc',
+        # Windows
+        'C:\\Windows\\Fonts\\msyh.ttc',  # Microsoft YaHei
+        'C:\\Windows\\Fonts\\simhei.ttf',  # SimHei
+        # Linux
+        '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
+    ]
+    
+    # 检查字体文件是否存在
+    for font_path in font_paths:
+        if os.path.exists(font_path):
+            return font_path
+    
+    # 如果找不到中文字体，返回默认字体
+    return 'Arial'
+
+
+def add_subtitle(video_path: str,
+                srt_path: str,
+                output_path: Optional[str] = None,
+                font: str = None,
+                fontsize: int = 24,
+                color: str = 'white',
+                stroke_color: str = 'black',
+                stroke_width: float = 1.0) -> str:
+    """
+    为视频添加字幕
     
     Args:
-        video_path (str): 视频文件路径
-        srt_path (str): SRT 字幕文件路径
-        output_path (str): 输出文件路径
-        fontsize (int): 字体大小，默认 24
-        font (str): 字体名称，默认 Arial
-        color (str): 字体颜色，默认白色
-        stroke_color (str): 描边颜色，默认黑色
-        stroke_width (int): 描边宽度，默认 1
-        y_position (float): 字幕的垂直位置，范围从0到1，0表示顶部，1表示底部，默认 0.85
+        video_path: 视频文件路径
+        srt_path: SRT字幕文件路径
+        output_path: 输出文件路径，如果不指定则在原文件名后添加"_with_subtitle"
+        font: 字体，如果不指定则自动选择系统中文字体
+        fontsize: 字体大小
+        color: 字体颜色
+        stroke_color: 描边颜色
+        stroke_width: 描边宽度
         
     Returns:
-        str: 输出文件的路径
+        str: 添加字幕后的视频文件路径
     """
     try:
-        # 加载视频文件
+        # 如果没有指定字体，使用系统中文字体
+        if font is None:
+            font = get_system_font()
+            log.info(f"使用系统字体: {font}")
+        
+        # 加载视频
         video = VideoFileClip(video_path)
-
-        # 加载字幕文件
+        
+        # 加载字幕
         subs = pysrt.open(srt_path)
-
-        # 创建字幕剪辑列表
+        
+        # 生成字幕剪辑
         subtitle_clips = []
-
-        for sub in subs:
-            # 转换时间为秒
-            start_time = sub.start.hours * 3600 + sub.start.minutes * 60 + sub.start.seconds + sub.start.milliseconds / 1000
-            end_time = sub.end.hours * 3600 + sub.end.minutes * 60 + sub.end.seconds + sub.end.milliseconds / 1000
+        
+        for sub in tqdm(subs, desc="处理字幕"):
+            start_time = sub.start.ordinal / 1000  # 转换为秒
+            end_time = sub.end.ordinal / 1000
             duration = end_time - start_time
-
-            # 创建文本剪辑
-            text_clip = (TextClip(sub.text,
-                                  fontsize=fontsize,
-                                  font=font,
-                                  color=color,
-                                  stroke_color=stroke_color,
-                                  stroke_width=stroke_width,
-                                  size=(video.w * 0.8, None),  # 宽度设为视频宽度的80%
-                                  method='caption')
-                         .set_position(lambda t: ('center', 900+t))  # 设置位置
-                         # .set_position('center', 'bottom')  # 设置位置
-                         .set_duration(duration)
-                         .set_start(start_time))
-
-            subtitle_clips.append(text_clip)
-
-        # 合成带字幕的视频
+            
+            try:
+                # 创建文本剪辑
+                text_clip = (TextClip(sub.text,
+                                    fontsize=fontsize,
+                                    font=font,
+                                    color=color,
+                                    stroke_color=stroke_color,
+                                    stroke_width=stroke_width,
+                                    size=(video.w * 0.8, None),  # 宽度设为视频宽度的80%
+                                    method='caption')
+                            .set_position(('center', 'bottom'))  # 设置位置在底部居中
+                            .set_duration(duration)
+                            .set_start(start_time))
+                subtitle_clips.append(text_clip)
+            except Exception as e:
+                log.error(f"处理字幕时出错: {str(e)}, 字幕内容: {sub.text}")
+                continue
+        
+        # 合成视频
         final_video = CompositeVideoClip([video] + subtitle_clips)
-
+        
+        # 如果没有指定输出路径，在原文件名后添加"_with_subtitle"
+        if output_path is None:
+            file_dir = os.path.dirname(video_path)
+            file_name = os.path.splitext(os.path.basename(video_path))[0]
+            output_path = os.path.join(file_dir, f"{file_name}_with_subtitle.mp4")
+        
         # 确保输出目录存在
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-        # 写入新的视频文件
-        final_video.write_videofile(output_path,
-                                    codec='libx264',
-                                    audio_codec='aac',
-                                    temp_audiofile='temp-audio.m4a',
-                                    remove_temp=True)
-
-        # 关闭文件以释放资源
+        
+        # 保存视频
+        final_video.write_videofile(
+            output_path,
+            codec='libx264',
+            audio_codec='aac',
+            temp_audiofile='temp-audio.m4a',
+            remove_temp=True,
+            verbose=False,
+            logger=None,
+            ffmpeg_params=['-hide_banner', '-loglevel', 'error']
+        )
+        
+        # 关闭视频
         video.close()
         final_video.close()
-
+        
         return output_path
-
+        
     except Exception as e:
-        raise Exception(f"添加字幕时出错: {str(e)}")
+        log.error(f"添加字幕时出错: {str(e)}")
+        raise
 

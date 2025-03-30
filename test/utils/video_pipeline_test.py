@@ -9,7 +9,7 @@ from core.utils.video.video_pipeline import process_youtube_video
 project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
-video_url = "https://www.youtube.com/watch?v=v0dgjSG4CpA"
+video_url = "https://www.youtube.com/watch?v=GMSC95hEj2w"
 
 
 class VideoPipelineTest(unittest.TestCase):
