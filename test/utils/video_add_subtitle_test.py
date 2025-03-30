@@ -15,12 +15,12 @@ class VideoAddSubtitleTest(unittest.TestCase):
             """
         # 设置输入文件路径
         video_path = os.path.join(project_root, "file", "v1_mixed.mp4")
-        srt_path = os.path.join(project_root, "file", "v1.srt")
+        srt_path = os.path.join(project_root, "file", "v1_zh-cn.srt")
 
         # 设置输出文件路径
         output_dir = os.path.join(project_root, "file", "output")
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, "v1_with_subtitle.mp4")
+        output_path = os.path.join(output_dir, "v1_with_subtitle_v1.mp4")
 
         try:
             # 执行添加字幕
