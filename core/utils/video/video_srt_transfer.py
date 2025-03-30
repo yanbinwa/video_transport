@@ -97,5 +97,8 @@ def translate_srt_file(srt_path: str, target_path: str, target_lang: str = 'zh-c
     
     Returns:
         str: 翻译后的字幕文件路径
+        :param target_lang:
+        :param srt_path:
+        :param target_path:
     """
-    return asyncio.run(async_translate_srt_file(srt_path, target_lang))
+    return asyncio.run(async_translate_srt_file(srt_path, target_path, target_lang))

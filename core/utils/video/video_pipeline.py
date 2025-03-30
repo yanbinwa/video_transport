@@ -87,7 +87,7 @@ class ProcessState:
 
     def get_final_video_path(self) -> str:
         """获取最终使用的视频路径"""
-        return self.mixed_path if self.has_mixed_video() else self.video_path
+        return self.with_subtitle_path if self.has_with_subtitle() else self.mixed_path
 
 
 @suppress_warnings
@@ -148,7 +148,7 @@ def process_youtube_video(
                 # 合并视频和音频
                 log.info("开始合并视频和音频")
                 # 执行视频音频混合
-                mixed_path = mix_video_audio(state.video_path, state.audio_path, state.mixed_path)
+                mix_video_audio(state.video_path, state.audio_path, state.mixed_path)
                 log.info("完成视频和音频合并")
         else:
             log.info("合并的视频已存在，跳过音频处理")
