@@ -14,6 +14,7 @@ from .scene_detection_methods import (
     detect_by_optical_flow,
     detect_combined
 )
+from ..common.logger import log
 
 
 def detect_scene_changes(video_path: str, threshold: float = 30.0, method: str = 'frame_diff') -> List[float]:
@@ -125,6 +126,9 @@ def split_video(video_path: str, output_dir: str, scene_changes: List[float], mi
             # 先检查视频是否有音频
             has_audio = clip.audio is not None
             
+            # 设置 ffmpeg_params 来避免 stdout 错误
+            ffmpeg_params = ['-hide_banner', '-loglevel', 'error']
+            
             clip.write_videofile(
                 output_path,
                 codec='libx264',
@@ -132,24 +136,20 @@ def split_video(video_path: str, output_dir: str, scene_changes: List[float], mi
                 temp_audiofile=temp_audio_path if has_audio else None,
                 remove_temp=True,
                 verbose=False,
-                logger=None
+                logger=None,
+                ffmpeg_params=ffmpeg_params,
+                preset='medium',  # 使用更稳定的编码预设
+                threads=2  # 限制线程数以提高稳定性
             )
             
         except Exception as e:
-            print(f"\n处理片段 {i} 时出错: {str(e)}")
-            # 如果有音频处理错误，尝试不带音频处理
-            try:
-                clip.write_videofile(
-                    output_path,
-                    codec='libx264',
-                    audio=False,
-                    verbose=False,
-                    logger=None
-                )
-                print(f"\n已成功保存视频（无音频）: {output_path}")
-            except Exception as e2:
-                print(f"\n二次处理也失败: {str(e2)}")
-                continue
+            log.error(f"保存视频片段时出错: {str(e)}")
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except:
+                    pass
+            raise
         
         # 保存首帧缩略图
         clip.save_frame(thumbnail_path, t=0)
@@ -215,7 +215,9 @@ def split_video_v2(video_path: str, output_dir: str, time_ranges: List[tuple]) -
             # 先检查视频是否有音频
             has_audio = clip.audio is not None
             
-            # 保存视频片段
+            # 设置 ffmpeg_params 来避免 stdout 错误
+            ffmpeg_params = ['-hide_banner', '-loglevel', 'error']
+            
             clip.write_videofile(
                 output_path,
                 codec='libx264',
@@ -223,32 +225,28 @@ def split_video_v2(video_path: str, output_dir: str, time_ranges: List[tuple]) -
                 temp_audiofile=temp_audio_path if has_audio else None,
                 remove_temp=True,
                 verbose=False,
-                logger=None
+                logger=None,
+                ffmpeg_params=ffmpeg_params,
+                preset='medium',  # 使用更稳定的编码预设
+                threads=2  # 限制线程数以提高稳定性
             )
             
             # 保存首帧缩略图
             clip.save_frame(thumbnail_path, t=0)
             
             # 关闭当前片段
-            clip.close()
+            # clip.close()
             
             output_files.append(output_path)
             
         except Exception as e:
-            print(f"\n处理片段 {i} 时出错: {str(e)}")
-            # 如果有音频处理错误，尝试不带音频处理
-            try:
-                clip.write_videofile(
-                    output_path,
-                    codec='libx264',
-                    audio=False,
-                    verbose=False,
-                    logger=None
-                )
-                print(f"\n已成功保存视频（无音频）: {output_path}")
-            except Exception as e2:
-                print(f"\n二次处理也失败: {str(e2)}")
-                continue
+            log.error(f"保存视频片段时出错: {str(e)}")
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except:
+                    pass
+            raise
     
     # 关闭原视频
     video.close()

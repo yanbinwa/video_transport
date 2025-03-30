@@ -91,7 +91,6 @@ async def async_translate_srt_file(srt_path: str, target_lang: str = 'zh-cn') ->
         log.error(f"翻译字幕文件时出错: {str(e)}")
         raise
 
-
 def translate_srt_file(srt_path: str, target_lang: str = 'zh-cn') -> str:
     """
     同步包装函数，用于调用异步翻译函数
