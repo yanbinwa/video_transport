@@ -2,56 +2,47 @@
 # 视频切分，识别视频转场
 ################################################################################
 
+import os
 from typing import List
 
-import cv2
-import numpy as np
+from moviepy.editor import VideoFileClip
 from tqdm import tqdm
 
+from .scene_detection_methods import (
+    detect_by_frame_diff,
+    detect_by_histogram,
+    detect_by_optical_flow,
+    detect_combined
+)
 
-def detect_scene_changes(video_path: str, threshold: float = 30.0) -> List[float]:
+
+def detect_scene_changes(video_path: str, threshold: float = 30.0, method: str = 'frame_diff') -> List[float]:
     """
     检测视频中的转场时间点
     
     Args:
         video_path: 视频文件路径
         threshold: 判断转场的阈值，值越大检测越不敏感
+        method: 检测方法，可选值：
+               - 'frame_diff': 帧差法（默认）
+               - 'histogram': 直方图比较法
+               - 'optical_flow': 光流法
+               - 'combined': 组合方法
         
     Returns:
         转场时间点列表（以秒为单位）
     """
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise ValueError("无法打开视频文件")
-    
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    prev_frame = None
-    scene_changes = []
-    
-    # 使用tqdm创建进度条
-    for frame_count in tqdm(range(total_frames), desc="检测视频转场"):
-        ret, frame = cap.read()
-        if not ret:
-            break
-            
-        # 转换为灰度图
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        if prev_frame is not None:
-            # 计算帧间差异
-            diff = cv2.absdiff(gray, prev_frame)
-            mean_diff = np.mean(diff)
-            
-            # 如果差异大于阈值，认为是转场点
-            if mean_diff > threshold:
-                time_point = frame_count / fps
-                scene_changes.append(time_point)
-        
-        prev_frame = gray
-    
-    cap.release()
-    return scene_changes
+    # 根据方法选择相应的检测函数
+    if method == 'frame_diff':
+        return detect_by_frame_diff(video_path, threshold)
+    elif method == 'histogram':
+        return detect_by_histogram(video_path, threshold)
+    elif method == 'optical_flow':
+        return detect_by_optical_flow(video_path, threshold)
+    elif method == 'combined':
+        return detect_combined(video_path, threshold, threshold)
+    else:
+        raise ValueError(f"不支持的检测方法: {method}")
 
 
 def split_video(video_path: str, output_dir: str, scene_changes: List[float], min_duration: float = 10.0) -> List[str]:
@@ -67,8 +58,6 @@ def split_video(video_path: str, output_dir: str, scene_changes: List[float], mi
     Returns:
         切分后的视频文件路径列表
     """
-    import os
-    
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -78,18 +67,11 @@ def split_video(video_path: str, output_dir: str, scene_changes: List[float], mi
         if os.path.isfile(file_path):
             os.remove(file_path)
     
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise ValueError("无法打开视频文件")
-    
-    # 获取视频信息
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    # 使用 moviepy 加载视频
+    video = VideoFileClip(video_path)
     
     # 添加视频起始点和结束点
-    time_points = [0] + scene_changes + [total_frames / fps]
+    time_points = [0] + scene_changes + [video.duration]
     
     # 合并过短的片段
     merged_points = []
@@ -119,47 +101,213 @@ def split_video(video_path: str, output_dir: str, scene_changes: List[float], mi
     
     output_files = []
     # 按照合并后的时间点切分视频
-    for i in tqdm(range(len(merged_points) - 1), desc="按照时间点切分视频"):
+    for i in tqdm(range(len(merged_points) - 1), desc="按照时间点切分视频", position=0):
         start_time = merged_points[i]
         end_time = merged_points[i + 1]
-        
-        # 计算起始和结束帧
-        start_frame = int(start_time * fps)
-        end_frame = int(end_time * fps)
         
         # 设置输出文件
         output_path = os.path.join(output_dir, f"scene_{i:03d}.mp4")
         # 设置首帧图片保存路径
         thumbnail_path = os.path.join(output_dir, f"scene_{i:03d}_thumb.jpg")
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         
-        # 定位到起始帧
-        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+        # 提取视频片段
+        clip = video.subclip(start_time, end_time)
         
-        # 读取并保存首帧
-        ret, first_frame = cap.read()
-        if ret:
-            cv2.imwrite(thumbnail_path, first_frame)
-            out.write(first_frame)
+        # 保存视频片段（保留音频）
+        try:
+            # 确保当前目录可写
+            temp_dir = os.path.dirname(output_path)
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # 设置临时文件路径
+            temp_audio_path = os.path.join(temp_dir, f'temp_audio_{i}.m4a')
+            
+            # 先检查视频是否有音频
+            has_audio = clip.audio is not None
+            
+            clip.write_videofile(
+                output_path,
+                codec='libx264',
+                audio_codec='aac' if has_audio else None,
+                temp_audiofile=temp_audio_path if has_audio else None,
+                remove_temp=True,
+                verbose=False,
+                logger=None
+            )
+            
+        except Exception as e:
+            print(f"\n处理片段 {i} 时出错: {str(e)}")
+            # 如果有音频处理错误，尝试不带音频处理
+            try:
+                clip.write_videofile(
+                    output_path,
+                    codec='libx264',
+                    audio=False,
+                    verbose=False,
+                    logger=None
+                )
+                print(f"\n已成功保存视频（无音频）: {output_path}")
+            except Exception as e2:
+                print(f"\n二次处理也失败: {str(e2)}")
+                continue
         
-        # 写入剩余帧
-        for _ in range(start_frame + 1, end_frame):
-            ret, frame = cap.read()
-            if not ret:
-                break
-            out.write(frame)
+        # 保存首帧缩略图
+        clip.save_frame(thumbnail_path, t=0)
         
-        out.release()
+        # 关闭当前片段
+        clip.close()
+        
         output_files.append(output_path)
     
-    cap.release()
+    # 关闭原视频
+    video.close()
+    
+    return output_files
+
+
+def split_video_v2(video_path: str, output_dir: str, time_ranges: List[tuple]) -> List[str]:
+    """
+    根据指定的时间区间列表切分视频
+    
+    Args:
+        video_path: 源视频路径
+        output_dir: 输出目录
+        time_ranges: 时间区间列表，每个元素是一个元组 (start_time, end_time)
+                    例如: [(0, 10), (15, 25), (30, 40)] 表示提取 0-10秒、1-25秒和30-40秒的片段
+        
+    Returns:
+        切分后的视频文件路径列表
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    # 使用 moviepy 加载视频
+    video = VideoFileClip(video_path)
+    
+    output_files = []
+    # 按照时间区间切分视频
+    for i, (start_time, end_time) in enumerate(tqdm(time_ranges, desc="按照时间区间切分视频", position=0)):
+        # 验证时间区间
+        if start_time >= end_time:
+            print(f"\n警告: 跳过无效的时间区间 [{start_time}, {end_time}]")
+            continue
+        
+        if start_time < 0 or end_time > video.duration:
+            print(f"\n警告: 时间区间 [{start_time}, {end_time}] 超出视频范围 [0, {video.duration}]")
+            continue
+        
+        # 设置输出文件
+        output_path = os.path.join(output_dir, f"clip_{i:03d}_{start_time:.1f}-{end_time:.1f}.mp4")
+        # 设置首帧图片保存路径
+        thumbnail_path = os.path.join(output_dir, f"clip_{i:03d}_{start_time:.1f}-{end_time:.1f}_thumb.jpg")
+        
+        # 提取视频片段
+        try:
+            clip = video.subclip(start_time, end_time)
+            
+            # 确保当前目录可写
+            temp_dir = os.path.dirname(output_path)
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # 设置临时文件路径
+            temp_audio_path = os.path.join(temp_dir, f'temp_audio_{i}.m4a')
+            
+            # 先检查视频是否有音频
+            has_audio = clip.audio is not None
+            
+            # 保存视频片段
+            clip.write_videofile(
+                output_path,
+                codec='libx264',
+                audio_codec='aac' if has_audio else None,
+                temp_audiofile=temp_audio_path if has_audio else None,
+                remove_temp=True,
+                verbose=False,
+                logger=None
+            )
+            
+            # 保存首帧缩略图
+            clip.save_frame(thumbnail_path, t=0)
+            
+            # 关闭当前片段
+            clip.close()
+            
+            output_files.append(output_path)
+            
+        except Exception as e:
+            print(f"\n处理片段 {i} 时出错: {str(e)}")
+            # 如果有音频处理错误，尝试不带音频处理
+            try:
+                clip.write_videofile(
+                    output_path,
+                    codec='libx264',
+                    audio=False,
+                    verbose=False,
+                    logger=None
+                )
+                print(f"\n已成功保存视频（无音频）: {output_path}")
+            except Exception as e2:
+                print(f"\n二次处理也失败: {str(e2)}")
+                continue
+    
+    # 关闭原视频
+    video.close()
+    
     return output_files
 
 
 def detect_scene_and_spilt(video_path: str, output_dir: str, threshold: float = 30.0, min_duration: float = 30.0):
+    """
+    检测视频转场并切分视频
+    
+    Args:
+        video_path: 视频文件路径
+        output_dir: 输出目录
+        threshold: 判断转场的阈值，值越大检测越不敏感
+        min_duration: 最小视频时长（秒）
+    """
     # 检测转场
     scene_changes = detect_scene_changes(video_path, threshold)
 
     # 切分视频
-    split_video(video_path, output_dir, scene_changes, min_duration)
+    return split_video(video_path, output_dir, scene_changes, min_duration)
+
+
+def time_str_to_seconds(time_str: str) -> float:
+    """
+    将时间字符串转换为秒数（保留2位小数）
+    
+    Args:
+        time_str: 时间字符串，格式为 "HH:MM:SS,mmm" 或 "HH:MM:SS.mmm"
+                 例如: "00:04:59,879" 或 "00:04:59.879"
+    
+    Returns:
+        float: 转换后的秒数
+        
+    Examples:
+        >>> time_str_to_seconds("00:04:59,879")
+        299.88
+        >>> time_str_to_seconds("01:00:00,000")
+        3600.00
+    """
+    # 统一将逗号替换为点
+    time_str = time_str.replace(',', '.')
+    
+    try:
+        # 分割时、分、秒
+        hours, minutes, seconds = time_str.split(':')
+        
+        # 转换为数字
+        hours = int(hours)
+        minutes = int(minutes)
+        # 秒可能包含小数点，所以用 float
+        seconds = float(seconds)
+        
+        # 计算总秒数
+        total_seconds = hours * 3600 + minutes * 60 + seconds
+        
+        # 保留2位小数
+        return round(total_seconds, 2)
+        
+    except ValueError as e:
+        raise ValueError(f"时间格式错误，应为 'HH:MM:SS,mmm' 或 'HH:MM:SS.mmm'，实际输入: {time_str}")
