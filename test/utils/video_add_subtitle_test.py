@@ -14,7 +14,7 @@ class VideoAddSubtitleTest(unittest.TestCase):
             测试向视频添加字幕功能
             """
         # 设置输入文件路径
-        video_path = os.path.join(project_root, "file", "v1.mp4")
+        video_path = os.path.join(project_root, "file", "v1_mixed.mp4")
         srt_path = os.path.join(project_root, "file", "v1.srt")
 
         # 设置输出文件路径

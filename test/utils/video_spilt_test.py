@@ -13,6 +13,7 @@ class VideoSpiltTest(unittest.TestCase):
 
     def test_detect_scene_and_spilt(self):
         video_path = os.path.join(project_root, "file/output", "v1_with_subtitle.mp4")
+        # video_path = os.path.join(project_root, "file", "v1_mixed.mp4")
         output_dir = os.path.join(project_root, "file/spilt")
-        video_split.detect_scene_and_spilt(video_path, output_dir)
+        video_split.detect_scene_and_spilt(video_path, output_dir, threshold=30, min_duration=60)
 
